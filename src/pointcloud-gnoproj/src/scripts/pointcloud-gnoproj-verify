@@ -1,0 +1,86 @@
+#!/bin/bash
+# pointcloud-procedures - Camera pointcloud procedures
+#
+# Copyright (c) 2015 FOXEL SA - http://foxel.ch
+# Please read <http://foxel.ch/license> for more information.
+#
+#
+# Author(s):
+#
+#       Kevin Velickovic <k.velickovic@foxel.ch>
+#
+#
+# This file is part of the FOXEL project <http://foxel.ch>.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# Additional Terms:
+#
+#       You are required to preserve legal notices and author attributions in
+#       that material or in the Appropriate Legal Notices displayed by works
+#       containing it.
+#
+#       You are required to attribute the work as explained in the "Usage and
+#       Attribution" section of <http://foxel.ch/license>.
+
+# Help function
+_help() {
+    echo """
+    Usage: $(basename $0) <Mount point> <Camera MAC> <Master timestamp> <Tile name>
+    """
+}
+
+# Arg check
+if [ $# -lt 4 ]; then
+    _help
+    exit
+fi
+
+# Script parameters #
+PARAM_MOUNT="$1"
+PARAM_MAC="$2"
+PARAM_MASTER="$3"
+PARAM_TILE_NAME="$4"
+
+# footage base folder
+FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
+
+# TILES folder
+TILES_DIR="$FOOTAGE_DIR/tiles/0"
+
+# Output GNOPROJ folder
+OUTPUT_DIR="$FOOTAGE_DIR/tiles/0/SENSOR"
+
+# Outout tile name
+OUT_TILE_NAME=$(echo $PARAM_TILE_NAME | replace '_EQR.tiff' '-RECT-SENSOR.tiff')
+
+# Output tile path
+OUT_TILE_PATH="$OUTPUT_DIR/$OUT_TILE_NAME"
+
+# Check if output file exists
+if [ -f "$OUT_TILE_PATH" ]; then
+
+    # Check if output tile is corrupted
+    if [[ -n $(pychecktiff $OUT_TILE_PATH) ]]; then
+
+        # Debug message
+        >&2 echo -e "\n[$(date '+%F %R') \e[33mWARNING\e[39m] $(basename $0) : tile $OUT_TILE_PATH is corrupted, removing tile..."
+
+        # Remove tile
+        rm "$OUT_TILE_PATH"
+
+    fi
+
+fi

@@ -1,0 +1,85 @@
+#!/bin/bash
+# pointcloud-procedures - Camera pointcloud procedures
+#
+# Copyright (c) 2015 FOXEL SA - http://foxel.ch
+# Please read <http://foxel.ch/license> for more information.
+#
+#
+# Author(s):
+#
+#       Kevin Velickovic <k.velickovic@foxel.ch>
+#
+#
+# This file is part of the FOXEL project <http://foxel.ch>.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# Additional Terms:
+#
+#       You are required to preserve legal notices and author attributions in
+#       that material or in the Appropriate Legal Notices displayed by works
+#       containing it.
+#
+#       You are required to attribute the work as explained in the "Usage and
+#       Attribution" section of <http://foxel.ch/license>.
+
+# Help function
+_help() {
+    echo """
+    Usage: $(basename $0) <Mount point> <Camera MAC> <Master timestamp> <tile timestamp>
+    """
+}
+
+if [ $# -lt 4 ]; then
+    _help
+    exit
+fi
+
+# Script parameters #
+PARAM_MOUNT="$1"
+PARAM_MAC="$2"
+PARAM_MASTER="$3"
+PARAM_TILE_TS="$4"
+
+# footage base folder
+FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
+
+# TILES folder
+TILES_DIR="$FOOTAGE_DIR/tiles/0"
+
+# Compute tiles name
+LEFT_TILE_04="$TILES_DIR/$PARAM_TILE_TS-04-DECONV-RGB24_EQR-LEFT.tiff"
+RIGHT_TILE_04="$TILES_DIR/$PARAM_TILE_TS-04-DECONV-RGB24_EQR-RIGHT.tiff"
+TILE_04="$TILES_DIR/$PARAM_TILE_TS-04-DECONV-RGB24_EQR.tiff"
+
+LEFT_TILE_12="$TILES_DIR/$PARAM_TILE_TS-12-DECONV-RGB24_EQR-LEFT.tiff"
+RIGHT_TILE_12="$TILES_DIR/$PARAM_TILE_TS-12-DECONV-RGB24_EQR-RIGHT.tiff"
+TILE_12="$TILES_DIR/$PARAM_TILE_TS-12-DECONV-RGB24_EQR.tiff"
+
+LEFT_TILE_20="$TILES_DIR/$PARAM_TILE_TS-20-DECONV-RGB24_EQR-LEFT.tiff"
+RIGHT_TILE_20="$TILES_DIR/$PARAM_TILE_TS-20-DECONV-RGB24_EQR-RIGHT.tiff"
+TILE_20="$TILES_DIR/$PARAM_TILE_TS-20-DECONV-RGB24_EQR.tiff"
+
+if [ ! -f "$TILE_04" ]; then
+    convert $LEFT_TILE_04 $RIGHT_TILE_04 +append $TILE_04
+fi
+
+if [ ! -f "$TILE_12" ]; then
+    convert $LEFT_TILE_12 $RIGHT_TILE_12 +append $TILE_12
+fi
+
+if [ ! -f "$TILE_20" ]; then
+    convert $LEFT_TILE_20 $RIGHT_TILE_20 +append $TILE_20
+fi
