@@ -6,7 +6,7 @@ The _pointcloud-procedures_ scripts suite is dedicated to camera pointcloud gene
 
 ### Documentation
 
-Documentation can be consulted on the [wiki](https://github.com/FoxelSA/rawdata-procedures/wiki).
+Documentation can be consulted on the [wiki](https://github.com/F0x06/pointcloud-procedures/wiki).
 
 
 ### Copyright
