@@ -147,7 +147,7 @@ if [ -f "$MATCHES_DIR/lists.txt" ]; then
     else
 
         # Debug output
-        >&2 echo -e "[$(date '+%F %R') \e[33mWARNING\e[39m] $(basename $0) : List already generated, skipping... (you can re-generate it with --foce-list option)"
+        >&2 echo -e "[$(date '+%F %R') \e[33mWARNING\e[39m] $(basename $0) : List already generated, skipping... (you can re-generate it with --force-list option)"
 
     fi
 

@@ -36,44 +36,7 @@
 #       Attribution" section of <http://foxel.ch/license>.
 
 # Script parameters #
-PARAM_MOUNT="/data/"
-PARAM_MAC=""
-PARAM_MASTER=""
-PARAM_NO_GNOPROJ=""
-
-# Loop breaker
-LOOP_BREAK="0"
-
-# Trap ctrl-c and call ctrl_c()
-trap ctrl_c INT
-
-# CTRL-C handler function
-function ctrl_c() {
-
-    # Set loop break flag
-    LOOP_BREAK="1"
-}
-
-# Help function
-_help() {
-    echo """
-    Usage: $(basename $0) [OPTIONS]
-
-    [Required arguments]
-    --mount-point       Base mount directory
-    --mac-address       Camera MAC address
-    --master-timestamp  Master timestamp
-
-    [Optional arguments]
-    --channels-file     Channels list file
-    --force             Force all steps to (re)generate
-    --force-list        Force list (re)generation
-    --force-matches     Force matches (re)computation
-    --force-pointcloud  Force pointcloud (re)generation
-    --no-gnoproj        Don't perform gnoproj operations
-    --help              Show this message
-    """
-}
+PARAM_LOG_FILE=""
 
 # Arguments and parameters parser #
 arguments() {
@@ -84,25 +47,9 @@ arguments() {
         args="$1"
         shift
         case $args in
-            --mount-point)
-                PARAM_MOUNT="$1"
+            --log-file)
+                PARAM_LOG_FILE="$1"
                 shift
-            ;;
-            --mac-address)
-                PARAM_MAC="$1"
-                shift
-            ;;
-            --master-timestamp)
-                PARAM_MASTER="$1"
-                shift
-            ;;
-            --no-gnoproj)
-                PARAM_NO_GNOPROJ="1"
-                shift
-            ;;
-            --help | -h)
-                _help
-                exit
             ;;
         esac
 
@@ -110,95 +57,17 @@ arguments() {
 
 }
 
-if [ $# -eq 0 ]; then
-    _help
-    exit
-fi
-
 # Argument and parameters #
 arguments $@
 
-# Check execution consistency #
-if [ ! -d $PARAM_MOUNT/footage ]; then
+# Check --log-file option presence
+if [ ! -z "$PARAM_LOG_FILE" ]; then
 
-    # Exit script #
-    echo "Error : unable to access standard directory with specified mount point"
-    exit 1
+    # Redirect main script stderr to stdout -> call main script -> save output to log file
+    pointcloud-procedures-main $@ 2>&1 | tee $PARAM_LOG_FILE
 
+else
+
+    # Call main script
+    pointcloud-procedures-main $@
 fi
-
-# Check execution consistency #
-if [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
-
-    # Exit script #
-    echo "Error : cannot continue execution without --mac-address/--master-timestamp parameters"
-    exit 1
-
-fi
-
-# Check execution consistency #
-if [ ! -d "$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER" ]; then
-
-    # Exit script #
-    echo "Error : cannot access master allocation"
-    exit 1
-
-fi
-
-# Determine openMVG folder
-OPENMVG_FOLDER="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER/openMVG"
-
-# Check openMVG folder presence
-if [ ! -d "$OPENMVG_FOLDER" ]; then
-
-    # Create folder
-    mkdir "$OPENMVG_FOLDER"
-
-fi
-
-# Check for --no-gnoproj option presence
-if [ -z "$PARAM_NO_GNOPROJ" ]; then
-
-    # Debug output #
-    echo "[$(date '+%F %R')] $(basename $0) : Starting gnomonic pojections..."
-
-    # Call pointcloud-gnoproj
-    pointcloud-gnoproj $@
-
-    # Loop break checker
-    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
-
-    # Debug output #
-    echo "[$(date '+%F %R')] $(basename $0) : Merging left/right tiles..."
-
-    # Call pointcloud-gnoproj
-    pointcloud-merge-lr $@
-
-    # Loop break checker
-    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
-
-fi
-
-# Debug output #
-echo "[$(date '+%F %R')] $(basename $0) : Generating tiles list..."
-
-# Call pointcloud-openmvg-list
-pointcloud-openmvg-list $@
-
-# Loop break checker
-if [ $LOOP_BREAK -ne 0 ]; then exit; fi
-
-# Debug output #
-echo "[$(date '+%F %R')] $(basename $0) : Computing matches..."
-
-# Call pointcloud-openmvg-matches
-pointcloud-openmvg-matches $@
-
-# Loop break checker
-if [ $LOOP_BREAK -ne 0 ]; then exit; fi
-
-# Debug output #
-echo "[$(date '+%F %R')] $(basename $0) : Generating pointcloud..."
-
-# Call pointcloud-openmvg-rig
-pointcloud-openmvg-rig $@

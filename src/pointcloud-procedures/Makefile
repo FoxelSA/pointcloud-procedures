@@ -5,6 +5,7 @@
 
     all:directories
 	cp src/pointcloud-procedures bin/pointcloud-procedures
+	cp src/pointcloud-procedures-main bin/pointcloud-procedures-main
 
 #
 #   make - directories

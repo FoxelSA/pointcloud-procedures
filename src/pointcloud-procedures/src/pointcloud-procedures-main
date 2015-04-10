@@ -1,0 +1,210 @@
+#!/bin/bash
+# pointcloud-procedures - Camera pointcloud procedures
+#
+# Copyright (c) 2015 FOXEL SA - http://foxel.ch
+# Please read <http://foxel.ch/license> for more information.
+#
+#
+# Author(s):
+#
+#       Kevin Velickovic <k.velickovic@foxel.ch>
+#
+#
+# This file is part of the FOXEL project <http://foxel.ch>.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# Additional Terms:
+#
+#       You are required to preserve legal notices and author attributions in
+#       that material or in the Appropriate Legal Notices displayed by works
+#       containing it.
+#
+#       You are required to attribute the work as explained in the "Usage and
+#       Attribution" section of <http://foxel.ch/license>.
+
+# Script parameters #
+PARAM_MOUNT="/data/"
+PARAM_MAC=""
+PARAM_MASTER=""
+PARAM_NO_GNOPROJ=""
+PARAM_LOG_FILE=""
+
+# Loop breaker
+LOOP_BREAK="0"
+
+# Trap ctrl-c and call ctrl_c()
+trap ctrl_c INT
+
+# CTRL-C handler function
+function ctrl_c() {
+
+    # Set loop break flag
+    LOOP_BREAK="1"
+}
+
+# Help function
+_help() {
+    echo """
+    Usage: $(basename $0) [OPTIONS]
+
+    [Required arguments]
+    --mount-point       Base mount directory
+    --mac-address       Camera MAC address
+    --master-timestamp  Master timestamp
+
+    [Optional arguments]
+    --log-gile          Log all output to specified file
+    --channels-file     Channels list file
+    --force             Force all steps to (re)generate
+    --force-list        Force list (re)generation
+    --force-matches     Force matches (re)computation
+    --force-pointcloud  Force pointcloud (re)generation
+    --no-gnoproj        Don't perform gnoproj operations
+    --help              Show this message
+    """
+}
+
+# Arguments and parameters parser #
+arguments() {
+
+    # Search in arguments #
+    while [[ $# > 0 ]]; do
+
+        args="$1"
+        shift
+        case $args in
+            --mount-point)
+                PARAM_MOUNT="$1"
+                shift
+            ;;
+            --mac-address)
+                PARAM_MAC="$1"
+                shift
+            ;;
+            --master-timestamp)
+                PARAM_MASTER="$1"
+                shift
+            ;;
+            --no-gnoproj)
+                PARAM_NO_GNOPROJ="1"
+                shift
+            ;;
+            --log-file)
+                PARAM_LOG_FILE="$1"
+                shift
+            ;;
+            --help | -h)
+                _help
+                exit
+            ;;
+        esac
+
+    done
+
+}
+
+if [ $# -eq 0 ]; then
+    _help
+    exit
+fi
+
+# Argument and parameters #
+arguments $@
+
+# Check execution consistency #
+if [ ! -d $PARAM_MOUNT/footage ]; then
+
+    # Exit script #
+    echo "Error : unable to access standard directory with specified mount point"
+    exit 1
+
+fi
+
+# Check execution consistency #
+if [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
+
+    # Exit script #
+    echo "Error : cannot continue execution without --mac-address/--master-timestamp parameters"
+    exit 1
+
+fi
+
+# Check execution consistency #
+if [ ! -d "$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER" ]; then
+
+    # Exit script #
+    echo "Error : cannot access master allocation"
+    exit 1
+
+fi
+
+# Determine openMVG folder
+OPENMVG_FOLDER="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER/openMVG"
+
+# Check openMVG folder presence
+if [ ! -d "$OPENMVG_FOLDER" ]; then
+
+    # Create folder
+    mkdir "$OPENMVG_FOLDER"
+
+fi
+
+# Check for --no-gnoproj option presence
+if [ -z "$PARAM_NO_GNOPROJ" ]; then
+
+    # Debug output #
+    echo "[$(date '+%F %R')] $(basename $0) : Starting gnomonic pojections..."
+
+    # Call pointcloud-gnoproj
+    pointcloud-gnoproj $@ >&2
+
+    # Loop break checker
+    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+    # Debug output #
+    echo "[$(date '+%F %R')] $(basename $0) : Merging left/right tiles..."
+
+    # Call pointcloud-gnoproj
+    pointcloud-merge-lr $@
+
+    # Loop break checker
+    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Generating tiles list..."
+
+# Call pointcloud-openmvg-list
+pointcloud-openmvg-list $@ >&2
+
+# Loop break checker
+if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Computing matches..."
+
+# Call pointcloud-openmvg-matches
+pointcloud-openmvg-matches $@ >&2
+
+# Loop break checker
+if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Generating pointcloud..."
+
+# Call pointcloud-openmvg-rig
+pointcloud-openmvg-rig $@ >&2
