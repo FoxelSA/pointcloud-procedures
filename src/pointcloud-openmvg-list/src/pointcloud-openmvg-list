@@ -39,7 +39,8 @@
 PARAM_MOUNT="/data/"
 PARAM_MAC=""
 PARAM_MASTER=""
-PARAM_CPU_THREADS=""
+PARAM_FORCE_LIST=""
+PARAM_CHANNELS_FILE=""
 
 # Help function
 _help() {
@@ -52,7 +53,8 @@ _help() {
     --master-timestamp  Master timestamp
 
     [Optional arguments]
-    --cpu-threads       Process localy with specified number of threads
+    --force-list        Force list (re)generation
+    --channels-file     Channels list file
     --help              Show this message
     """
 }
@@ -78,17 +80,17 @@ arguments() {
                 PARAM_MASTER="$1"
                 shift
             ;;
-            --cpu-threads)
-                if [ -z "$1" ]; then
-                    PARAM_CPU_THREADS="+0"
-                else
-                    PARAM_CPU_THREADS="$1"
-                fi
-                shift
-            ;;
             --help | -h)
                 _help
                 exit
+            ;;
+            --force-list | --force)
+                PARAM_FORCE_LIST="1"
+                shift
+            ;;
+            --channels-file)
+                PARAM_CHANNELS_FILE=" -c $1"
+                shift
             ;;
         esac
 
@@ -122,52 +124,39 @@ if [ ! -d $PARAM_MOUNT/camera ]; then
 
 fi
 
-# SSH configs cirectory
-SSH_CONFIGS_DIR="$PARAM_MOUNT/system/etc/ssh-configs/pointcloud-procedures"
-
-# SSH config file
-SSH_CONFIG_FILE="$SSH_CONFIGS_DIR/pointcloud-merge-lr.conf"
-
 # footage base folder
 FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
 
 # TILES folder
-TILES_DIR="$FOOTAGE_DIR/tiles/0"
+TILES_DIR="$FOOTAGE_DIR/tiles/0/sensor"
 
-# Scripts paths
-PARALLEL_SCRIPT="parallel"
-MERGE_LR_SCRIPT="pointcloud-merge-lr-merger"
+# matches folder
+MATCHES_DIR="$FOOTAGE_DIR/openMVG/matches"
 
-# Build MOV list
-TS_LIST="$(
-    find $TILES_DIR -type f -iname '*.tiff' -printf '%fn\n' | cut -d'-' -f1 | replace './' '' | sort -u
-)"
+# Debug output
+>&2 echo "[$(date '+%F %R')] pointcloud-openmvg-list : Generating lists.txt file..."
 
-# Check MOV list length
-if [ ${#TS_LIST} -gt 0 ]; then
+# Check list file presence
+if [ -f "$MATCHES_DIR/lists.txt" ]; then
 
-    # Split segment
-    >&2 echo "[$(date '+%F %R')] pointcloud-merge-lr : Merging Left/Right tiles..."
+    if [ ! -z "$PARAM_FORCE_LIST" ]; then
 
-    # Check for CPU threads argument
-    if [ -z "$PARAM_CPU_THREADS" ]; then
+        # Call listomvg
+        listomvg -i $TILES_DIR -m $PARAM_MAC -o $MATCHES_DIR -d $PARAM_MOUNT $PARAM_CHANNELS_FILE
 
-        # Start merging procedure
-        echo "$TS_LIST" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta --ungroup --sshloginfile $SSH_CONFIG_FILE $MERGE_LR_SCRIPT $PARAM_MOUNT \
-        $PARAM_MAC \
-        $PARAM_MASTER \
-        {}
     else
 
-        # Start merging procedure
-        echo "$TS_LIST" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta -j$PARAM_CPU_THREADS $MERGE_LR_SCRIPT $PARAM_MOUNT \
-        $PARAM_MAC \
-        $PARAM_MASTER \
-        {}
+        # Debug output
+        >&2 echo -e "[$(date '+%F %R') \e[33mWARNING\e[39m] $(basename $0) : List already generated, skipping... (you can re-generate it with --foce-list option)"
+
     fi
 
 else
 
-    # Display warning segment
-    >&2 echo "[$(date '+%F %R')] pointcloud-merge-lr : Master $PARAM_MASTER have no EQR tiles, skipping"
+    # Call listomvg
+    listomvg -i $TILES_DIR -m $PARAM_MAC -o $MATCHES_DIR -d $PARAM_MOUNT $PARAM_CHANNELS_FILE
+
 fi
+
+# Debug output
+>&2 echo "[$(date '+%F %R')] pointcloud-openmvg-list : Done"

@@ -60,7 +60,7 @@ FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
 TILES_DIR="$FOOTAGE_DIR/tiles/0"
 
 # Output GNOPROJ folder
-OUTPUT_DIR="$FOOTAGE_DIR/tiles/0/SENSOR"
+OUTPUT_DIR="$FOOTAGE_DIR/tiles/0/sensor"
 
 # Outout tile name
 OUT_TILE_NAME=$(echo $PARAM_TILE_NAME | replace '_EQR.tiff' '-RECT-SENSOR.tiff')
@@ -69,6 +69,6 @@ OUT_TILE_NAME=$(echo $PARAM_TILE_NAME | replace '_EQR.tiff' '-RECT-SENSOR.tiff')
 if [ ! -f "$OUTPUT_DIR/$OUT_TILE_NAME" ]; then
 
     # Start GNOPROJ
-    gnoproj -d $PARAM_MOUNT -i $TILES_DIR/$PARAM_TILE_NAME -m $PARAM_MAC -o $OUTPUT_DIR
+    echo gnoproj -d $PARAM_MOUNT -i $TILES_DIR/$PARAM_TILE_NAME -m $PARAM_MAC -o $OUTPUT_DIR
 
 fi

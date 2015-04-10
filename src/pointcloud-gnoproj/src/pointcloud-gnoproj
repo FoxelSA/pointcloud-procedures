@@ -39,7 +39,6 @@
 PARAM_MOUNT="/data/"
 PARAM_MAC=""
 PARAM_MASTER=""
-PARAM_SEGMENT=""
 PARAM_CPU_THREADS=""
 
 # Loop breaker
@@ -56,7 +55,6 @@ _help() {
     --master-timestamp  Master timestamp
 
     [Optional arguments]
-    --segment-timestamp Segment timestamp
     --cpu-threads       Process localy with specified number of threads
     --help              Show this message
     """
@@ -91,10 +89,6 @@ arguments() {
             ;;
             --master-timestamp)
                 PARAM_MASTER="$1"
-                shift
-            ;;
-            --segment-timestamp)
-                PARAM_SEGMENT="$1"
                 shift
             ;;
             --cpu-threads)
@@ -154,12 +148,12 @@ FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
 TILES_DIR="$FOOTAGE_DIR/tiles/0"
 
 # GNOPROJ TILES folder
-OUTPUT_TILES_DIR="$FOOTAGE_DIR/tiles/0/SENSOR"
+OUTPUT_TILES_DIR="$FOOTAGE_DIR/tiles/0/sensor"
 
 # Scripts paths
 PARALLEL_SCRIPT="parallel"
-GNOPROJ_SCRIPT="/home/f0x/Bureau/pointcloud-procedures/src/pointcloud-gnoproj/src/scripts/pointcloud-gnoproj-worker"
-VERIFY_SCRIPT="/home/f0x/Bureau/pointcloud-procedures/src/pointcloud-gnoproj/src/scripts/pointcloud-gnoproj-verify"
+GNOPROJ_SCRIPT="pointcloud-gnoproj-worker"
+VERIFY_SCRIPT="pointcloud-gnoproj-verify"
 
 # Build MOV list
 TS_LIST="$(
@@ -185,9 +179,6 @@ if [ ${#TS_LIST} -gt 0 ]; then
 
     done
 
-    # Loop break checker
-    if [ $LOOP_BREAK -ne 0 ]; then break; fi
-
     # Verify tiles
     >&2 echo "[$(date '+%F %R')] pointcloud-gnoproj : Checking for corrupted tiles..."
 
@@ -209,7 +200,7 @@ if [ ${#TS_LIST} -gt 0 ]; then
     fi
 
     # Loop break checker
-    if [ $LOOP_BREAK -ne 0 ]; then break; fi
+    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
 
     # Project tiles
     >&2 echo "[$(date '+%F %R')] pointcloud-gnoproj : Projecting tiles..."

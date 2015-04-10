@@ -39,7 +39,20 @@
 PARAM_MOUNT="/data/"
 PARAM_MAC=""
 PARAM_MASTER=""
-PARAM_CPU_THREADS=""
+PARAM_NO_GNOPROJ=""
+
+# Loop breaker
+LOOP_BREAK="0"
+
+# Trap ctrl-c and call ctrl_c()
+trap ctrl_c INT
+
+# CTRL-C handler function
+function ctrl_c() {
+
+    # Set loop break flag
+    LOOP_BREAK="1"
+}
 
 # Help function
 _help() {
@@ -52,15 +65,20 @@ _help() {
     --master-timestamp  Master timestamp
 
     [Optional arguments]
-    --cpu-threads       Process localy with specified number of threads
+    --channels-file     Channels list file
+    --force             Force all steps to (re)generate
+    --force-list        Force list (re)generation
+    --force-matches     Force matches (re)computation
+    --force-pointcloud  Force pointcloud (re)generation
+    --no-gnoproj        Don't perform gnoproj operations
     --help              Show this message
     """
 }
 
-# Arguments and parameters parser
+# Arguments and parameters parser #
 arguments() {
 
-    # Search in arguments
+    # Search in arguments #
     while [[ $# > 0 ]]; do
 
         args="$1"
@@ -78,12 +96,8 @@ arguments() {
                 PARAM_MASTER="$1"
                 shift
             ;;
-            --cpu-threads)
-                if [ -z "$1" ]; then
-                    PARAM_CPU_THREADS="+0"
-                else
-                    PARAM_CPU_THREADS="$1"
-                fi
+            --no-gnoproj)
+                PARAM_NO_GNOPROJ="1"
                 shift
             ;;
             --help | -h)
@@ -105,16 +119,7 @@ fi
 arguments $@
 
 # Check execution consistency #
-if [ -z "$PARAM_MOUNT" ] || [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
-
-    # Exit script #
-    echo "Error : cannot continue execution without --mount-point/--mac-address/--master-timestamp parameters"
-    exit 1
-
-fi
-
-# Check execution consistency #
-if [ ! -d $PARAM_MOUNT/camera ]; then
+if [ ! -d $PARAM_MOUNT/footage ]; then
 
     # Exit script #
     echo "Error : unable to access standard directory with specified mount point"
@@ -122,52 +127,78 @@ if [ ! -d $PARAM_MOUNT/camera ]; then
 
 fi
 
-# SSH configs cirectory
-SSH_CONFIGS_DIR="$PARAM_MOUNT/system/etc/ssh-configs/pointcloud-procedures"
+# Check execution consistency #
+if [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
 
-# SSH config file
-SSH_CONFIG_FILE="$SSH_CONFIGS_DIR/pointcloud-merge-lr.conf"
+    # Exit script #
+    echo "Error : cannot continue execution without --mac-address/--master-timestamp parameters"
+    exit 1
 
-# footage base folder
-FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
-
-# TILES folder
-TILES_DIR="$FOOTAGE_DIR/tiles/0"
-
-# Scripts paths
-PARALLEL_SCRIPT="parallel"
-MERGE_LR_SCRIPT="pointcloud-merge-lr-merger"
-
-# Build MOV list
-TS_LIST="$(
-    find $TILES_DIR -type f -iname '*.tiff' -printf '%fn\n' | cut -d'-' -f1 | replace './' '' | sort -u
-)"
-
-# Check MOV list length
-if [ ${#TS_LIST} -gt 0 ]; then
-
-    # Split segment
-    >&2 echo "[$(date '+%F %R')] pointcloud-merge-lr : Merging Left/Right tiles..."
-
-    # Check for CPU threads argument
-    if [ -z "$PARAM_CPU_THREADS" ]; then
-
-        # Start merging procedure
-        echo "$TS_LIST" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta --ungroup --sshloginfile $SSH_CONFIG_FILE $MERGE_LR_SCRIPT $PARAM_MOUNT \
-        $PARAM_MAC \
-        $PARAM_MASTER \
-        {}
-    else
-
-        # Start merging procedure
-        echo "$TS_LIST" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta -j$PARAM_CPU_THREADS $MERGE_LR_SCRIPT $PARAM_MOUNT \
-        $PARAM_MAC \
-        $PARAM_MASTER \
-        {}
-    fi
-
-else
-
-    # Display warning segment
-    >&2 echo "[$(date '+%F %R')] pointcloud-merge-lr : Master $PARAM_MASTER have no EQR tiles, skipping"
 fi
+
+# Check execution consistency #
+if [ ! -d "$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER" ]; then
+
+    # Exit script #
+    echo "Error : cannot access master allocation"
+    exit 1
+
+fi
+
+# Determine openMVG folder
+OPENMVG_FOLDER="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER/openMVG"
+
+# Check openMVG folder presence
+if [ ! -d "$OPENMVG_FOLDER" ]; then
+
+    # Create folder
+    mkdir "$OPENMVG_FOLDER"
+
+fi
+
+# Check for --no-gnoproj option presence
+if [ -z "$PARAM_NO_GNOPROJ" ]; then
+
+    # Debug output #
+    echo "[$(date '+%F %R')] $(basename $0) : Starting gnomonic pojections..."
+
+    # Call pointcloud-gnoproj
+    pointcloud-gnoproj $@
+
+    # Loop break checker
+    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+    # Debug output #
+    echo "[$(date '+%F %R')] $(basename $0) : Merging left/right tiles..."
+
+    # Call pointcloud-gnoproj
+    pointcloud-merge-lr $@
+
+    # Loop break checker
+    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Generating tiles list..."
+
+# Call pointcloud-openmvg-list
+pointcloud-openmvg-list $@
+
+# Loop break checker
+if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Computing matches..."
+
+# Call pointcloud-openmvg-matches
+pointcloud-openmvg-matches $@
+
+# Loop break checker
+if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Generating pointcloud..."
+
+# Call pointcloud-openmvg-rig
+pointcloud-openmvg-rig $@
