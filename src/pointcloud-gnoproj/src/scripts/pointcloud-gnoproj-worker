@@ -69,6 +69,6 @@ OUT_TILE_NAME=$(echo $PARAM_TILE_NAME | replace '_EQR.tiff' '-RECT-SENSOR.tiff')
 if [ ! -f "$OUTPUT_DIR/$OUT_TILE_NAME" ]; then
 
     # Start GNOPROJ
-    echo gnoproj -d $PARAM_MOUNT -i $TILES_DIR/$PARAM_TILE_NAME -m $PARAM_MAC -o $OUTPUT_DIR
+    gnoproj -d $PARAM_MOUNT -i $TILES_DIR/$PARAM_TILE_NAME -m $PARAM_MAC -o $OUTPUT_DIR
 
 fi
