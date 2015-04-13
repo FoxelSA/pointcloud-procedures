@@ -72,6 +72,7 @@ _help() {
     --force-list        Force list (re)generation
     --force-matches     Force matches (re)computation
     --force-pointcloud  Force pointcloud (re)generation
+    --force-densify     Force pointcloud (re)densification
     --no-gnoproj        Don't perform gnoproj operations
     --help              Show this message
     """
@@ -208,3 +209,21 @@ echo "[$(date '+%F %R')] $(basename $0) : Generating pointcloud..."
 
 # Call pointcloud-openmvg-rig
 pointcloud-openmvg-rig $@ >&2
+
+# Loop break checker
+if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Exporting data into PMVS format..."
+
+# Call pointcloud-densify-export
+pointcloud-densify-export $@ >&2
+
+# Loop break checker
+if [ $LOOP_BREAK -ne 0 ]; then exit; fi
+
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Densifying pointcloud..."
+
+# Call pointcloud-densify
+pointcloud-densify $@ >&2

@@ -1,0 +1,206 @@
+#!/bin/bash
+# pointcloud-procedures - Camera pointcloud procedures
+#
+# Copyright (c) 2015 FOXEL SA - http://foxel.ch
+# Please read <http://foxel.ch/license> for more information.
+#
+#
+# Author(s):
+#
+#       Kevin Velickovic <k.velickovic@foxel.ch>
+#
+#
+# This file is part of the FOXEL project <http://foxel.ch>.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# Additional Terms:
+#
+#       You are required to preserve legal notices and author attributions in
+#       that material or in the Appropriate Legal Notices displayed by works
+#       containing it.
+#
+#       You are required to attribute the work as explained in the "Usage and
+#       Attribution" section of <http://foxel.ch/license>.
+
+# Script parameters #
+PARAM_MOUNT="/data/"
+PARAM_MAC=""
+PARAM_MASTER=""
+PARAM_FORCE_DENSIFY=""
+
+# Help function
+_help() {
+    echo """
+    Usage: $(basename $0) [OPTIONS]
+
+    [Required arguments]
+    --mount-point       Base mount directory
+    --mac-address       Camera MAC address
+    --master-timestamp  Master timestamp
+
+    [Optional arguments]
+    --force-densify     Force pointcloud (re)generation
+    --help              Show this message
+    """
+}
+
+# Arguments and parameters parser
+arguments() {
+
+    # Search in arguments
+    while [[ $# > 0 ]]; do
+
+        args="$1"
+        shift
+        case $args in
+            --mount-point)
+                PARAM_MOUNT="$1"
+                shift
+            ;;
+            --mac-address)
+                PARAM_MAC="$1"
+                shift
+            ;;
+            --master-timestamp)
+                PARAM_MASTER="$1"
+                shift
+            ;;
+            --force-densify | --force)
+                PARAM_FORCE_DENSIFY="1"
+                shift
+            ;;
+            --help | -h)
+                _help
+                exit
+            ;;
+        esac
+
+    done
+
+}
+
+if [ $# -eq 0 ]; then
+    _help
+    exit
+fi
+
+# Argument and parameters #
+arguments $@
+
+# Check execution consistency #
+if [ -z "$PARAM_MOUNT" ] || [ -z "$PARAM_MAC" ] || [ -z "$PARAM_MASTER" ]; then
+
+    # Exit script #
+    echo "Error : cannot continue execution without --mount-point/--mac-address/--master-timestamp parameters"
+    exit 1
+
+fi
+
+# Check execution consistency #
+if [ ! -d $PARAM_MOUNT/camera ]; then
+
+    # Exit script #
+    echo "Error : unable to access standard directory with specified mount point"
+    exit 1
+
+fi
+
+# footage base folder
+FOOTAGE_DIR="$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER"
+
+# TILES folder
+TILES_DIR="$FOOTAGE_DIR/tiles/0/sensor"
+
+# matches folder
+MATCHES_DIR="$FOOTAGE_DIR/openMVG/matches"
+
+# OPENMVG folder
+OPENMVG_DIR="$FOOTAGE_DIR/openMVG"
+
+# global folder
+GLOBAL_DIR="$FOOTAGE_DIR/openMVG/global"
+
+# PMVS folder
+PMVS_DIR="$FOOTAGE_DIR/openMVG/PMVS"
+
+# Debug output
+>&2 echo "[$(date '+%F %R')] $(basename $0) : Starting pointcloud densification..."
+
+# Check matches forlder presence
+if [ -d "$MATCHES_DIR" ]; then
+
+    # Check if matches.putative.txt file exists
+    if [ -f "$MATCHES_DIR/matches.putative.txt" ]; then
+
+        # Check if pointcloud is already generated
+        if [ -f "$GLOBAL_DIR/FinalColorized.ply" ]; then
+
+            # Check if data is already exported
+            if [ -d "$OPENMVG_DIR/PMVS" ]; then
+
+                # Check if pointcloud is not densified
+                if [ ! -f "$PMVS_DIR/models/pmvs_options.txt.ply" ]; then
+
+                    # Call PMVS
+                    pmvs2 $PMVS_DIR/ pmvs_options.txt
+
+                else
+
+                    # Check --force-pointcloud argument presence
+                    if [ ! -z "$PARAM_FORCE_DENSIFY" ]; then
+
+                        # Call PMVS
+                        pmvs2 $PMVS_DIR/ pmvs_options.txt
+
+                    else
+
+                        # Debug output
+                        >&2 echo -e "[$(date '+%F %R') \e[33mWARNING\e[39m] $(basename $0) : Pointcloud already densified (you can re-densify it with --force-densify option)"
+
+                    fi
+
+                fi
+
+            else
+
+                # Debug output
+                >&2 echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : Data not exported into PMVS format"
+
+            fi
+
+        else
+
+            # Debug output
+            >&2 echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : Pointcloud not generated"
+
+        fi
+
+    else
+
+        # Debug output
+        >&2 echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : Matches not computed"
+
+    fi
+
+else
+
+    # Debug output
+    >&2 echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : Matches not computed"
+
+fi
+
+# Debug output
+>&2 echo "[$(date '+%F %R')] $(basename $0) : Done"
