@@ -199,8 +199,8 @@ def main(argv):
     Requirements = ["openMVG_main_computeMatches",
     "cmvs",
     "pmvs2",
-    "gnoproj",
-    "listomvg"]
+    "listomvg",
+    "parallel"]
 
     # Parse arguments
     Arguments = {}

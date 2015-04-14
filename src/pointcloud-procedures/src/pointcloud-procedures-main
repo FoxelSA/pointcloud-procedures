@@ -58,7 +58,7 @@ function ctrl_c() {
 # Help function
 _help() {
     echo """
-    Usage: $(basename $0) [OPTIONS]
+    Usage: $(basename $0 | replace '\-main' '') [OPTIONS]
 
     [Required arguments]
     --mount-point       Base mount directory
