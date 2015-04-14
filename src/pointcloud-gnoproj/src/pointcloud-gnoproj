@@ -195,7 +195,7 @@ if [ ${#TS_LIST} -gt 0 ]; then
         else
 
             # Start GNOPROJ procedure
-            printf '%s\n' "${FILES_LIST[@]}" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta -j$PARAM_CPU_THREADS $VERIFY_SCRIPT $PARAM_MOUNT \
+            printf '%s\n' "${FILES_LIST[@]}" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta --ungroup -j$PARAM_CPU_THREADS $VERIFY_SCRIPT $PARAM_MOUNT \
             $PARAM_MAC \
             $PARAM_MASTER \
             {}
@@ -220,7 +220,7 @@ if [ ${#TS_LIST} -gt 0 ]; then
         $PARAM_MASTER \
         {}
     else
-        printf '%s\n' "${FILES_LIST[@]}" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta -j$PARAM_CPU_THREADS $GNOPROJ_SCRIPT $PARAM_MOUNT \
+        printf '%s\n' "${FILES_LIST[@]}" | $PARALLEL_SCRIPT --gnu --retries 5 --will-cite --eta --ungroup -j$PARAM_CPU_THREADS $GNOPROJ_SCRIPT $PARAM_MOUNT \
         $PARAM_MAC \
         $PARAM_MASTER \
         {}

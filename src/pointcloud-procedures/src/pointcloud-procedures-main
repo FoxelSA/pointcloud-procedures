@@ -164,6 +164,28 @@ if ! which gnoproj >/dev/null; then
 
 fi
 
+# Check GnoProj
+if ! which pychecktiff >/dev/null; then
+
+    # Debug output
+    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : pychecktiff not installed"
+
+    # Flag error
+    ENV_NOT_OK="1"
+
+fi
+
+# Check GnoProj
+if ! which listomvg >/dev/null; then
+
+    # Debug output
+    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : listomvg not installed"
+
+    # Flag error
+    ENV_NOT_OK="1"
+
+fi
+
 # If a software is missing, exit
 if [ ! -z "$ENV_NOT_OK" ]; then exit; fi
 
@@ -214,6 +236,12 @@ if [ ! -d "$OPENMVG_FOLDER" ]; then
 
 fi
 
+# Debug output #
+echo "[$(date '+%F %R')] $(basename $0) : Merging left/right tiles..."
+
+# Call pointcloud-gnoproj
+pointcloud-merge-lr $@
+
 # Check for --no-gnoproj option presence
 if [ -z "$PARAM_NO_GNOPROJ" ]; then
 
@@ -222,15 +250,6 @@ if [ -z "$PARAM_NO_GNOPROJ" ]; then
 
     # Call pointcloud-gnoproj
     pointcloud-gnoproj $@ >&2
-
-    # Loop break checker
-    if [ $LOOP_BREAK -ne 0 ]; then exit; fi
-
-    # Debug output #
-    echo "[$(date '+%F %R')] $(basename $0) : Merging left/right tiles..."
-
-    # Call pointcloud-gnoproj
-    pointcloud-merge-lr $@
 
     # Loop break checker
     if [ $LOOP_BREAK -ne 0 ]; then exit; fi
