@@ -117,78 +117,6 @@ arguments() {
 
 }
 
-# Environement check status variable
-ENV_NOT_OK=""
-
-# Check OpenMVG
-if ! which openMVG_main_computeMatches >/dev/null; then
-
-    # Debug output
-    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : OpenMVG not installed"
-
-    # Flag error
-    ENV_NOT_OK="1"
-
-fi
-
-# Check cmvs
-if ! which cmvs >/dev/null; then
-
-    # Debug output
-    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : cmvs not installed"
-
-    # Flag error
-    ENV_NOT_OK="1"
-
-fi
-
-# Check pmvs 2
-if ! which pmvs2 >/dev/null; then
-
-    # Debug output
-    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : pmvs2 not installed"
-
-    # Flag error
-    ENV_NOT_OK="1"
-
-fi
-
-# Check GnoProj
-if ! which gnoproj >/dev/null; then
-
-    # Debug output
-    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : gnoproj not installed"
-
-    # Flag error
-    ENV_NOT_OK="1"
-
-fi
-
-# Check GnoProj
-if ! which pychecktiff >/dev/null; then
-
-    # Debug output
-    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : pychecktiff not installed"
-
-    # Flag error
-    ENV_NOT_OK="1"
-
-fi
-
-# Check GnoProj
-if ! which listomvg >/dev/null; then
-
-    # Debug output
-    echo -e "[$(date '+%F %R') \e[31mERROR\e[39m] $(basename $0) : listomvg not installed"
-
-    # Flag error
-    ENV_NOT_OK="1"
-
-fi
-
-# If a software is missing, exit
-if [ ! -z "$ENV_NOT_OK" ]; then exit; fi
-
 # Check arguments
 if [ $# -eq 0 ]; then
     _help
@@ -223,6 +151,14 @@ if [ ! -d "$PARAM_MOUNT/footage/$PARAM_MAC/master/$PARAM_MASTER" ]; then
     echo "Error : cannot access master allocation"
     exit 1
 
+fi
+
+# Check dependencies
+pointcloud-dependencies $@
+
+# Exit if dependencies errors
+if [ $? -ne 0 ]; then
+    exit
 fi
 
 # Determine openMVG folder
