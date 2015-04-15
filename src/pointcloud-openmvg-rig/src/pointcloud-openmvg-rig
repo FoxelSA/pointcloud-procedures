@@ -134,7 +134,7 @@ GLOBAL_DIR="$FOOTAGE_DIR/openMVG/global"
 # Debug output
 >&2 echo "[$(date '+%F %R')] $(basename $0) : Running Sfm..."
 
-# Check matches forlder presence
+# Check matches folder presence
 if [ -d "$MATCHES_DIR" ]; then
 
     # Check if matches.putative.txt file exists
