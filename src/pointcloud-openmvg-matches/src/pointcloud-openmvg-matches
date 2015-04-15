@@ -39,7 +39,6 @@
 PARAM_MOUNT="/data/"
 PARAM_MAC=""
 PARAM_MASTER=""
-CHANNELS_FILE=""
 PARAM_FORCE_MATCHES=""
 
 # Help function
@@ -130,11 +129,6 @@ MATCHES_DIR="$FOOTAGE_DIR/openMVG/matches"
 
 # Debug output
 >&2 echo "[$(date '+%F %R')] $(basename $0) : Matching points..."
-
-# Check presence of channels file and enable it if file exists
-if [ -f "$MATCHES_DIR/channels.txt" ]; then
-    CHANNELS_FILE=" -c $MATCHES_DIR/channels.txt"
-fi
 
 # Check matches forlder presence
 if [ -d "$MATCHES_DIR" ]; then
